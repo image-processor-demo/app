@@ -1,0 +1,39 @@
+name: Build Frontend
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build React App
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Guarded build: will NOT fail if secret is missing
+      - name: Build frontend
+        if: secrets.API_BASE_URL != ''
+        run: npm run build
+        env:
+          VITE_API_BASE_URL: ${{ secrets.API_BASE_URL }}
+
+      - name: Skip build (API_BASE_URL not set)
+        if: secrets.API_BASE_URL == ''
+        run: |
+          echo "VITE_API_BASE_URL is not set."
+          echo "Skipping build. This is expected on first push."
