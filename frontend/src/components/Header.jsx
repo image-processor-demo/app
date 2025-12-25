@@ -7,7 +7,7 @@ export default function Header() {
                 textAlign: "center"
             }}
         >
-            <h1>Abstract Your Photo</h1>
+            <h1>Turn Your Photo Into a Sketch</h1>
             <p>Upload an image and let the cloud do the magic ✨</p>
         </header>
     );
