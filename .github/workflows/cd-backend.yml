@@ -5,6 +5,7 @@ on:
     branches: [ main ]
     paths:
       - 'backend/**'
+      - '.github/workflows/cd-backend.yml'
 
 permissions:
   contents: read
@@ -77,7 +78,7 @@ jobs:
       # 9. Update versions.yml
       - name: Update backend artifact version
         run: |
-          cd infra/live/environments/dev
+          cd environments/dev
           NEW_VALUE="${ARTIFACT_NAME}.${ARTIFACT_VERSION}.zip"
           yq e -i '.backend.lambda.process = strenv(NEW_VALUE)' versions.yml
 
