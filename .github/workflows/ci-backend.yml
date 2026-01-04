@@ -34,10 +34,6 @@ jobs:
         run: |
           pip install -r requirements.txt
 
-      - name: Verify installed packages
-        working-directory: backend
-        run: pip list | grep Pillow
-
       - name: Run basic import check
         working-directory: backend
         run: |
