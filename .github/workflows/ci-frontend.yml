@@ -1,11 +1,6 @@
 name: Frontend CI (Feature Branches)
 
 on:
-  push:
-    branches:
-      - 'feature/**'
-    paths:
-      - 'frontend/**'
   pull_request:
     branches:
       - 'main'
