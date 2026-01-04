@@ -79,7 +79,7 @@ jobs:
       - name: Update backend artifact version
         run: |
           cd infra/environments/dev
-          NEW_VALUE="${ARTIFACT_NAME}.${ARTIFACT_VERSION}.zip"
+          export NEW_VALUE="${ARTIFACT_NAME}.${ARTIFACT_VERSION}.zip"
           yq e -i '.backend.lambda.process = strenv(NEW_VALUE)' versions.yml
 
       # 10. Commit & push
