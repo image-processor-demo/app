@@ -6,6 +6,7 @@ on:
       - 'feature/**'
     paths:
       - 'backend/**'
+      - '.github/workflows/ci-backend.yml'
   pull_request:
     branches:
       - 'main'
@@ -31,9 +32,11 @@ jobs:
       - name: Install dependencies
         working-directory: backend
         run: |
-          python -m venv .venv
-          source .venv/bin/activate
           pip install -r requirements.txt
+
+      - name: Verify installed packages
+        working-directory: backend
+        run: pip list | grep Pillow
 
       - name: Run basic import check
         working-directory: backend
