@@ -1,0 +1,53 @@
+name: Backend CI (Feature Branches)
+
+on:
+  push:
+    branches:
+      - 'feature/**'
+    paths:
+      - 'backend/**'
+  pull_request:
+    branches:
+      - 'main'
+    paths:
+      - 'backend/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    env:
+      PYTHON_VERSION: "3.10"
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        working-directory: backend
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate
+          pip install -r requirements.txt
+
+      - name: Run basic import check
+        working-directory: backend
+        run: |
+          python - <<EOF
+          from app.processing import process_image_bytes
+          print("Processing import OK")
+          EOF
+
+      - name: Build Lambda package (no upload)
+        working-directory: backend
+        run: |
+          mkdir -p build
+          pip install -r requirements.txt -t build/
+          cp -r app build/
+          cd build
+          zip -r ../lambda-build-check.zip .

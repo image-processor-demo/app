@@ -1,0 +1,97 @@
+name: Build & Publish Backend Artifact
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'backend/**'
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+
+    env:
+      ARTIFACT_NAME: lambda-process-artifact
+      ARTIFACT_VERSION: sha-${{ github.sha }}
+      PYTHON_VERSION: "3.10"
+      ENVIRONMENT: dev
+      AWS_REGION: eu-west-1
+      AWS_ACCOUNT_ID: "938108731356"
+
+    steps:
+      # 1. Checkout app repo
+      - uses: actions/checkout@v4
+
+      # 2. Python
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      # 3. AWS OIDC
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/github-actions-role-global
+          aws-region: ${{ env.AWS_REGION }}
+
+      # 4. Build artifact
+      - name: Build Lambda artifact
+        working-directory: backend
+        run: |
+          mkdir -p build
+          pip install -r requirements.txt -t build/
+          cp -r app build/
+          cd build
+          zip -r ../${ARTIFACT_NAME}.${ARTIFACT_VERSION}.zip . \
+            -x "**/__pycache__/*" -x "**/*.pyc"
+
+      # 5. Upload to artifacts bucket
+      - name: Upload artifact to S3
+        run: |
+          aws s3 cp \
+            backend/${ARTIFACT_NAME}.${ARTIFACT_VERSION}.zip \
+            s3://${{ secrets.ARTIFACTS_BUCKET }}/lambda/${ARTIFACT_NAME}.${ARTIFACT_VERSION}.zip
+
+      # 6. Install yq
+      - name: Install yq
+        run: |
+          sudo wget -qO /usr/local/bin/yq \
+            https://github.com/mikefarah/yq/releases/download/v4.44.1/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
+      # 7. Configure SSH
+      - name: Configure SSH for infra repo
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.INFRA_REPO_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+
+      # 8. Checkout infra repo
+      - name: Checkout infra repo
+        run: git clone git@github.com:image-processor-demo/infra.git
+
+      # 9. Update versions.yml
+      - name: Update backend artifact version
+        run: |
+          cd infra/live/environments/dev
+          NEW_VALUE="${ARTIFACT_NAME}.${ARTIFACT_VERSION}.zip"
+          yq e -i '.backend.lambda.process = strenv(NEW_VALUE)' versions.yml
+
+      # 10. Commit & push
+      - name: Commit and push infra change
+        run: |
+          cd infra
+          git status
+          if git diff --quiet; then
+            echo "No infra changes"
+            exit 0
+          fi
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add live/environments/dev/versions.yml
+          git commit -m "chore(dev): deploy backend artifact ${ARTIFACT_VERSION}"
+          git push
