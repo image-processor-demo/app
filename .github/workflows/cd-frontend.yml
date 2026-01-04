@@ -1,0 +1,70 @@
+name: Build & Deploy Frontend (Dev)
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'frontend/**'
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      NODE_VERSION: 22.12.0
+      VITE_API_BASE_URL: ${{ secrets.API_BASE_URL }}
+      AWS_REGION: eu-west-1
+      AWS_ACCOUNT_ID: "938108731356"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: frontend
+
+      - name: Show API base URL status
+        run: echo "VITE_API_BASE_URL is $([[ -n \"$VITE_API_BASE_URL\" ]] && echo set || echo not set)"
+
+      - name: Build frontend
+        if: env.VITE_API_BASE_URL != ''
+        run: npm run build
+        working-directory: frontend
+
+      - name: Skip build (API_BASE_URL not set)
+        if: env.VITE_API_BASE_URL == ''
+        run: |
+          echo "VITE_API_BASE_URL not set. Skipping build."
+
+      - name: Configure AWS credentials (OIDC)
+        if: env.VITE_API_BASE_URL != ''
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/github-actions-role-global
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Upload to S3
+        if: env.VITE_API_BASE_URL != ''
+        run: |
+          aws s3 sync frontend/dist \
+            s3://${{ secrets.FRONTEND_DEV_BUCKET }} \
+            --delete
+
+      - name: Invalidate CloudFront
+        if: env.VITE_API_BASE_URL != ''
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ secrets.CLOUDFRONT_DEV_DISTRIBUTION_ID }} \
+            --paths "/*"
