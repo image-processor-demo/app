@@ -36,7 +36,7 @@ async def process_image( image: UploadFile = File(...), x_origin_verify: str = H
 
     if not API_SHARED_SECRET or x_origin_verify != API_SHARED_SECRET:
         logger.warning("Forbidden: header mismatch or secret not set")
-        raise HTTPException(status_code=403, detail="Forbidden")
+        raise HTTPException(status_code=404, detail="Forbidden")
         
 
     if not image.content_type.startswith("image/"):
