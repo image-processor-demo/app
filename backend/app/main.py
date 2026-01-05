@@ -49,6 +49,7 @@ async def process_image( image: UploadFile = File(...), x_origin_verify: str = H
     try:
         result_bytes = process_image_bytes(image_bytes)
     except Exception as e:
+        logger.exception("Error processing image") 
         raise HTTPException(status_code=500, detail=str(e))
 
     return Response(
