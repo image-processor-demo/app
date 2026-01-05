@@ -22,6 +22,7 @@ jobs:
       ENVIRONMENT: dev
       AWS_REGION: eu-west-1
       AWS_ACCOUNT_ID: "938108731356"
+      API_SHARED_SECRET: ${{ secrets.API_SHARED_SECRET }}
 
     steps:
       # 1. Checkout app repo
