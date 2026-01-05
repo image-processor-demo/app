@@ -9,7 +9,7 @@ export async function processImage(file) {
     });
 
     if (!response.ok) {
-        throw new Error("Image processing failed" + ` (status: ${response.status})`);
+        throw new Error("Image processing failed" + ` (status: ${response.status})` + "API_BASE_URL: " + API_BASE_URL);
 
     }
 
