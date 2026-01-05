@@ -6,8 +6,6 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.processing import process_image_bytes
 
-
-
 # Default to local if not set
 ENVIRONMENT = os.getenv("ENV", "local")
 API_SHARED_SECRET = os.getenv("API_SHARED_SECRET")
@@ -15,7 +13,7 @@ API_SHARED_SECRET = os.getenv("API_SHARED_SECRET")
 app = FastAPI(title="Image Processor API")
 
 
-# ✅ CORS ONLY FOR LOCAL DEVELOPMENT
+# CORS ONLY FOR LOCAL DEVELOPMENT
 if ENVIRONMENT == "local":
     app.add_middleware(
         CORSMiddleware,
