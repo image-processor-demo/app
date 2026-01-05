@@ -1,4 +1,5 @@
 import os
+import logging 
 
 from fastapi import FastAPI, UploadFile, File, HTTPException, Header
 from fastapi.responses import Response
@@ -26,14 +27,17 @@ if ENVIRONMENT == "local":
         allow_headers=["*"],
     )
 
-
+logger = logging.getLogger("image-processor") 
+logger.setLevel(logging.INFO)
 @app.post("/process")
-async def process_image(
-    image: UploadFile = File(...),
-    x_origin_verify: str = Header(...),
-):
+async def process_image( image: UploadFile = File(...), x_origin_verify: str = Header(...)):
+    logger.info(f"ENVIRONMENT={ENVIRONMENT}, API_SHARED_SECRET set={bool(API_SHARED_SECRET)}") 
+    logger.info(f"Received header X-Origin-Verify={x_origin_verify}")
+
     if not API_SHARED_SECRET or x_origin_verify != API_SHARED_SECRET:
+        logger.warning("Forbidden: header mismatch or secret not set")
         raise HTTPException(status_code=403, detail="Forbidden")
+        
 
     if not image.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="Invalid image type")
