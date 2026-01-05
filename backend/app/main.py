@@ -29,7 +29,7 @@ if ENVIRONMENT == "local":
 
 logger = logging.getLogger("image-processor") 
 logger.setLevel(logging.INFO)
-@app.post("/process")
+@app.post("/api/process")
 async def process_image( image: UploadFile = File(...), x_origin_verify: str = Header(...)):
     logger.info(f"ENVIRONMENT={ENVIRONMENT}, API_SHARED_SECRET set={bool(API_SHARED_SECRET)}") 
     logger.info(f"Received header X-Origin-Verify={x_origin_verify}")
