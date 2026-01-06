@@ -1,11 +1,10 @@
 import os
 import logging 
 from fastapi.responses import StreamingResponse
-
 from fastapi import FastAPI, UploadFile, File, HTTPException, Header
 from fastapi.responses import Response
 from fastapi.middleware.cors import CORSMiddleware
-
+import io
 from app.processing import process_image_bytes
 
 # Default to local if not set
