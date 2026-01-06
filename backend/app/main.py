@@ -1,5 +1,6 @@
 import os
 import logging 
+from fastapi.responses import StreamingResponse
 
 from fastapi import FastAPI, UploadFile, File, HTTPException, Header
 from fastapi.responses import Response
@@ -52,7 +53,7 @@ async def process_image( image: UploadFile = File(...), x_origin_verify: str = H
         logger.exception("Error processing image") 
         raise HTTPException(status_code=500, detail=str(e))
 
-    return Response(
-        content=result_bytes,
-        media_type="image/jpeg",
+    return StreamingResponse(
+    io.BytesIO(result_bytes),
+    media_type="image/jpeg",
     )
