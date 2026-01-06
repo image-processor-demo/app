@@ -1,10 +1,8 @@
 import os
 import logging 
-from fastapi.responses import StreamingResponse
 from fastapi import FastAPI, UploadFile, File, HTTPException, Header
 from fastapi.responses import Response
 from fastapi.middleware.cors import CORSMiddleware
-import io
 from app.processing import process_image_bytes
 
 # Default to local if not set
@@ -12,7 +10,6 @@ ENVIRONMENT = os.getenv("ENV", "local")
 API_SHARED_SECRET = os.getenv("API_SHARED_SECRET")
 
 app = FastAPI(title="Image Processor API")
-
 
 # CORS ONLY FOR LOCAL DEVELOPMENT
 if ENVIRONMENT == "local":
@@ -29,30 +26,43 @@ if ENVIRONMENT == "local":
 
 logger = logging.getLogger("image-processor") 
 logger.setLevel(logging.INFO)
+
 @app.post("/api/process")
-async def process_image( image: UploadFile = File(...), x_origin_verify: str = Header(...)):
+async def process_image(
+    image: UploadFile = File(...), 
+    x_origin_verify: str = Header(...)
+):
     logger.info(f"ENVIRONMENT={ENVIRONMENT}, API_SHARED_SECRET set={bool(API_SHARED_SECRET)}") 
     logger.info(f"Received header X-Origin-Verify={x_origin_verify}")
-
+    
     if not API_SHARED_SECRET or x_origin_verify != API_SHARED_SECRET:
         logger.warning("Forbidden: header mismatch or secret not set")
-        raise HTTPException(status_code=404, detail="Forbidden")
+        raise HTTPException(status_code=403, detail="Forbidden")  # Changed from 404 to 403
         
-
     if not image.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="Invalid image type")
-
-
-
+    
     image_bytes = await image.read()
-
+    logger.info(f"Received image size: {len(image_bytes)} bytes")
+    
     try:
         result_bytes = process_image_bytes(image_bytes)
+        logger.info(f"Processed image size: {len(result_bytes)} bytes")
+        
+        # Validate result
+        if not result_bytes or len(result_bytes) == 0:
+            raise ValueError("Processed image is empty")
+            
     except Exception as e:
         logger.exception("Error processing image") 
         raise HTTPException(status_code=500, detail=str(e))
-
-    return StreamingResponse(
-    io.BytesIO(result_bytes),
-    media_type="image/jpeg",
+    
+    # Use Response instead of StreamingResponse for Lambda compatibility
+    return Response(
+        content=result_bytes,
+        media_type="image/jpeg",
+        headers={
+            "Content-Length": str(len(result_bytes)),
+            "Content-Disposition": "inline"
+        }
     )
