@@ -1,9 +1,20 @@
 from mangum import Mangum
 from app.main import app
+import json
 
-# Configure Mangum to base64 encode binary responses for API Gateway
-handler = Mangum(
-    app, 
-    lifespan="off",
-    api_gateway_base_path="/",
-)
+def handler(event, context):
+    """
+    Custom handler that wraps Mangum and ensures binary responses
+    are properly flagged as base64 encoded
+    """
+    # Create Mangum handler
+    asgi_handler = Mangum(app, lifespan="off")
+    
+    # Get response from Mangum
+    response = asgi_handler(event, context)
+    
+    # If response is an image, ensure it's marked as base64 encoded
+    if response.get("headers", {}).get("content-type", "").startswith("image/"):
+        response["isBase64Encoded"] = True
+    
+    return response
