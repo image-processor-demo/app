@@ -1,18 +1,16 @@
 import os
 import logging 
-import base64
+from io import BytesIO
 from fastapi import FastAPI, UploadFile, File, HTTPException, Header
-from fastapi.responses import Response
+from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from app.processing import process_image_bytes
 
-# Default to local if not set
 ENVIRONMENT = os.getenv("ENV", "local")
 API_SHARED_SECRET = os.getenv("API_SHARED_SECRET")
 
 app = FastAPI(title="Image Processor API")
 
-# CORS ONLY FOR LOCAL DEVELOPMENT
 if ENVIRONMENT == "local":
     app.add_middleware(
         CORSMiddleware,
@@ -50,7 +48,6 @@ async def process_image(
         result_bytes = process_image_bytes(image_bytes)
         logger.info(f"Processed image size: {len(result_bytes)} bytes")
         
-        # Validate result
         if not result_bytes or len(result_bytes) == 0:
             raise ValueError("Processed image is empty")
             
@@ -58,13 +55,8 @@ async def process_image(
         logger.exception("Error processing image") 
         raise HTTPException(status_code=500, detail=str(e))
     
-    # For Lambda, we need to return Response with proper headers
-    # Mangum will handle the base64 encoding automatically
-    return Response(
-        content=result_bytes,
+    return StreamingResponse(
+        BytesIO(result_bytes),
         media_type="image/jpeg",
-        headers={
-            "Content-Type": "image/jpeg",
-            "Content-Length": str(len(result_bytes)),
-        }
+        headers={"Content-Length": str(len(result_bytes))}
     )
