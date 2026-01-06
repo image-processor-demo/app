@@ -1,5 +1,6 @@
 import os
 import logging 
+import base64
 from fastapi import FastAPI, UploadFile, File, HTTPException, Header
 from fastapi.responses import Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -37,7 +38,7 @@ async def process_image(
     
     if not API_SHARED_SECRET or x_origin_verify != API_SHARED_SECRET:
         logger.warning("Forbidden: header mismatch or secret not set")
-        raise HTTPException(status_code=403, detail="Forbidden")  # Changed from 404 to 403
+        raise HTTPException(status_code=403, detail="Forbidden")
         
     if not image.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="Invalid image type")
@@ -57,12 +58,13 @@ async def process_image(
         logger.exception("Error processing image") 
         raise HTTPException(status_code=500, detail=str(e))
     
-    # Use Response instead of StreamingResponse for Lambda compatibility
+    # For Lambda, we need to return Response with proper headers
+    # Mangum will handle the base64 encoding automatically
     return Response(
         content=result_bytes,
         media_type="image/jpeg",
         headers={
+            "Content-Type": "image/jpeg",
             "Content-Length": str(len(result_bytes)),
-            "Content-Disposition": "inline"
         }
     )
