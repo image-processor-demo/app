@@ -13,6 +13,5 @@ export async function processImage(file) {
 
     }
 
-    const blob = await response.blob();
-    return new Blob([blob], { type: "image/jpeg" }); // <-- wrap here
+    return response.blob();
 }
