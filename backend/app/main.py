@@ -1,11 +1,6 @@
 import os
 import logging 
-<<<<<<< HEAD
 from io import BytesIO
-=======
-from fastapi.responses import StreamingResponse
-
->>>>>>> 193f1b5 (Fix: Use StreamingResponse instead of Response)
 from fastapi import FastAPI, UploadFile, File, HTTPException, Header
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
